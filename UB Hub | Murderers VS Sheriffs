@@ -1,0 +1,2 @@
+_G.UBKey = "MEMBER_K608ZTZLXW"
+loadstring(game:HttpGet("https://gitlab.com/r_soft/main/-/raw/main/LoadUB.lua"))()
