@@ -1,0 +1,2 @@
+getgenv().HL_KEY = "" -- https://www.highlighthub.vip/key-system
+loadstring(game:HttpGet("https://www.highlighthub.vip/api/get-loader?id=cv0k2d"))()
