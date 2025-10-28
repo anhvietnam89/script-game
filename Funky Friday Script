@@ -161,12 +161,12 @@ task.spawn(function()
 end)
 
 local Window = Luna:CreateWindow({
-	Name = "Cao Tuan Anh Hub Funky Friday - By Youtuber Cao Tuan Anh Roblox",
+	Name = "Script Funky Friday - By Youtuber Cao Tuan Anh Roblox",
 	Subtitle = nil,
 	LogoID = "82795327169782",
 	LoadingEnabled = true,
-	LoadingTitle = "Funky friday autoplayer",
-	LoadingSubtitle = "by relevant500",
+	LoadingTitle = "Funky Friday Auto Play",
+	LoadingSubtitle = "by Cao Tuan Anh Roblox",
 
 	ConfigSettings = {
 		RootFolder = nil,
