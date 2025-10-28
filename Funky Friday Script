@@ -163,7 +163,7 @@ end)
 local Window = Luna:CreateWindow({
 	Name = "Script Funky Friday - By Youtuber Cao Tuan Anh Roblox",
 	Subtitle = nil,
-	LogoID = "82795327169782",
+	LogoID = "71848954352938",
 	LoadingEnabled = true,
 	LoadingTitle = "Funky Friday Auto Play",
 	LoadingSubtitle = "by Cao Tuan Anh Roblox",
