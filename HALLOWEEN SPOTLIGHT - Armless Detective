@@ -1,4 +1,4 @@
--- wbuhub - Armless Detective Script
+-- caotuananh - Armless Detective Script
 local _WBU_Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local _WBU_Players = game:GetService('Players')
 local _WBU_StarterGui = game:GetService('StarterGui')
@@ -13,9 +13,9 @@ local _WBU_LocalPlayer = _WBU_Players.LocalPlayer
 local _WBU_Constants = {
     DISCORD_URL = 'https://discord.gg/bJKkdQQn7r',
     VALID_KEY = 'caotuananh',
-    KEY_FILE = 'wbuhub/key.txt',
-    SETTINGS_FILE = 'wbuhub/wbuhub-sets.txt',
-    ERROR_LOG = 'wbuhub/errors.txt',
+    KEY_FILE = 'caotuananh/key.txt',
+    SETTINGS_FILE = 'caotuananh/caotuananh-sets.txt',
+    ERROR_LOG = 'caotuananh/errors.txt',
     GROUP_ID = 946378404,
     MOD_ROLE_IDS = {490360110, 8987623965, 4118621240},
     OWNER_ID = {5500539802, 488904041, 533030021},
@@ -26,7 +26,7 @@ local _WBU_Constants = {
 local function _WBU_Notify(title, text, duration)
     pcall(function()
         _WBU_StarterGui:SetCore('SendNotification', {
-            Title = title or 'wbuhub',
+            Title = title or 'Cao Tuan Anh Roblox',
             Text = text or '',
             Duration = duration or 3,
         })
@@ -46,8 +46,8 @@ end
 local _WBU_KeyValidated = true
 if not _WBU_KeyValidated then
     local _WBU_KeyWindow = _WBU_Rayfield:CreateWindow({
-        Name = 'wbuhub Key System',
-        LoadingTitle = 'wbuhub - Key Verification',
+        Name = 'caotuananh Key System',
+        LoadingTitle = 'caotuananh - Key Verification',
         LoadingSubtitle = 'Enter your key to proceed',
         ConfigurationSaving = { Enabled = false },
         Discord = { Enabled = true, Invite = '5ARTQYGvnX', RememberJoins = true },
@@ -97,10 +97,10 @@ end
 
 -- Main UI
 local _WBU_Window = _WBU_Rayfield:CreateWindow({
-    Name = 'wbuhub - Armless Detective',
-    LoadingTitle = 'wbuhub - Armless Detective',
-    LoadingSubtitle = 'by wbuhub',
-    ConfigurationSaving = { Enabled = true, FolderName = 'wbuhub', FileName = 'config' },
+    Name = 'Cao Tuan Anh Roblox - Armless Detective',
+    LoadingTitle = 'Cao Tuan Anh Roblox - Armless Detective',
+    LoadingSubtitle = 'by @caotuananh',
+    ConfigurationSaving = { Enabled = true, FolderName = 'caotuananh', FileName = 'config' },
     Discord = { Enabled = true, Invite = '5ARTQYGvnX', RememberJoins = true },
     KeySystem = false,
 })
@@ -154,28 +154,28 @@ if isfile and readfile and writefile then
             end
         end
     else
-        writefile(_WBU_SETTINGS.SettingsFile, '-- wbuhub settings\n-- ' .. _WBU_Constants.DISCORD_URL .. '\nAutoFarmToggle(false)\nAutofarmMode("Legit (Slow)")\nSelectedMap("Cursed Cathedral")\nCurrencyGoalMoney(0)\nCurrencyGoalCandy(0)\nAntiModAction("None")\nSpeedHackValue(16)\nEspProfile("Default")\nSessionTimeout(3600)')
+        writefile(_WBU_SETTINGS.SettingsFile, '-- caotuananh settings\n-- ' .. _WBU_Constants.DISCORD_URL .. '\nAutoFarmToggle(false)\nAutofarmMode("Legit (Slow)")\nSelectedMap("Cursed Cathedral")\nCurrencyGoalMoney(0)\nCurrencyGoalCandy(0)\nAntiModAction("None")\nSpeedHackValue(16)\nEspProfile("Default")\nSessionTimeout(3600)')
     end
 end
 
 local function _WBU_SaveSettings()
     if writefile then
         pcall(function()
-            writefile(_WBU_SETTINGS.SettingsFile, string.format('-- wbuhub settings\n-- %s\nAutoFarmToggle(%s)\nAutofarmMode("%s")\nSelectedMap("%s")\nCurrencyGoalMoney(%d)\nCurrencyGoalCandy(%d)\nAntiModAction("%s")\nSpeedHackValue(%d)\nEspProfile("%s")\nSessionTimeout(%d)', _WBU_Constants.DISCORD_URL, tostring(_WBU_SETTINGS.AutoFarmToggle), _WBU_SETTINGS.AutofarmMode, _WBU_SETTINGS.SelectedMap, _WBU_SETTINGS.CurrencyGoalMoney, _WBU_SETTINGS.CurrencyGoalCandy, _WBU_SETTINGS.AntiModAction, _WBU_SETTINGS.SpeedHackValue, _WBU_SETTINGS.EspProfile, _WBU_SETTINGS.SessionTimeout))
+            writefile(_WBU_SETTINGS.SettingsFile, string.format('-- caotuananh settings\n-- %s\nAutoFarmToggle(%s)\nAutofarmMode("%s")\nSelectedMap("%s")\nCurrencyGoalMoney(%d)\nCurrencyGoalCandy(%d)\nAntiModAction("%s")\nSpeedHackValue(%d)\nEspProfile("%s")\nSessionTimeout(%d)', _WBU_Constants.DISCORD_URL, tostring(_WBU_SETTINGS.AutoFarmToggle), _WBU_SETTINGS.AutofarmMode, _WBU_SETTINGS.SelectedMap, _WBU_SETTINGS.CurrencyGoalMoney, _WBU_SETTINGS.CurrencyGoalCandy, _WBU_SETTINGS.AntiModAction, _WBU_SETTINGS.SpeedHackValue, _WBU_SETTINGS.EspProfile, _WBU_SETTINGS.SessionTimeout))
         end)
     end
 end
 
 -- Localization (English Only)
 local _WBU_Localization = {
-    MoneyLabel = 'Money: %s 💸',
+    MoneyLabel = 'Money: %s 💰',
     CandyLabel = 'Candy: %s 🍬',
     TimerLabel = 'Timer: %s ⏱',
     GuiltyLabel = 'Guilty Suspect: %s 🕵️',
     ModCountLabel = 'Mods: %d 🚨',
     ModNamesLabel = 'Mod Names: %s',
     AutoFarmToggle = 'AutoFarm',
-    AutoLobbyButton = 'Auto Lobby 🍏',
+    AutoLobbyButton = 'Auto Lobby 🚪',
     AutoGuessButton = 'Auto Guess 🎯',
     AutofarmModeDropdown = 'Autofarm Mode ⚙️',
     AntiModAction = 'Anti Mod Action 🔧',
@@ -187,8 +187,8 @@ local _WBU_Localization = {
 local _WBU_ValuesFolder = _WBU_RS:WaitForChild('Values', 5)
 local _WBU_GuiltySuspect = _WBU_ValuesFolder and _WBU_ValuesFolder:WaitForChild('GuiltySuspect', 5)
 if not _WBU_ValuesFolder or not _WBU_GuiltySuspect then
-    _WBU_Notify('Error', 'Game not supported by wbuhub. Script aborted. 🚫', 5)
-    warn('[wbuhub] Game not supported.')
+    _WBU_Notify('Error', 'Game not supported by caotuananh. Script aborted. 🚫', 5)
+    warn('[caotuananh] Game not supported.')
     return
 end
 
@@ -208,7 +208,7 @@ local function _WBU_CreateOwnerGui(player)
             local textLabel = Instance.new('TextLabel')
             textLabel.Size = UDim2.new(1, 0, 1, 0)
             textLabel.BackgroundTransparency = 1
-            textLabel.Text = '👑WBUHUB - OWNER👑'
+            textLabel.Text = '👑caotuananh - OWNER👑'
             textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
             textLabel.TextStrokeTransparency = 0
             textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
@@ -230,7 +230,7 @@ local function _WBU_CreateOwnerGui(player)
                 local textLabel = Instance.new('TextLabel')
                 textLabel.Size = UDim2.new(1, 0, 1, 0)
                 textLabel.BackgroundTransparency = 1
-                textLabel.Text = '👑WBUHUB - OWNER👑'
+                textLabel.Text = '👑caotuananh - OWNER👑'
                 textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
                 textLabel.TextStrokeTransparency = 0
                 textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
@@ -1136,7 +1136,7 @@ local _WBU_SaveMapLayoutButton = _WBU_UtilitiesTab:CreateButton({
             end
             if writefile then
                 pcall(function()
-                    writefile('wbuhub/map_' .. (_WBU_RS.Values.SelectedMapName and _WBU_RS.Values.SelectedMapName.Value or 'unknown') .. '.txt', _WBU_HttpService:JSONEncode(layout))
+                    writefile('caotuananh/map_' .. (_WBU_RS.Values.SelectedMapName and _WBU_RS.Values.SelectedMapName.Value or 'unknown') .. '.txt', _WBU_HttpService:JSONEncode(layout))
                     _WBU_Notify('Map Scanner', 'Map layout saved 💾', 3)
                 end)
             end
@@ -1227,7 +1227,7 @@ local _WBU_BackupSettingsButton = _WBU_UtilitiesTab:CreateButton({
     Callback = function()
         if writefile and isfile(_WBU_SETTINGS.SettingsFile) then
             pcall(function()
-                writefile('wbuhub/backup_' .. os.time() .. '.txt', readfile(_WBU_SETTINGS.SettingsFile))
+                writefile('caotuananh/backup_' .. os.time() .. '.txt', readfile(_WBU_SETTINGS.SettingsFile))
                 _WBU_Notify('Settings', 'Settings backed up 💾', 3)
             end)
         end
@@ -1352,4 +1352,4 @@ if _WBU_Workspace.CurrentCamera then
 end
 
 -- Initial Notification
-_WBU_Notify('wbuhub', 'Loaded wbuhub successfully! 🌟', 4)
+_WBU_Notify('caotuananh', 'Loaded caotuananh successfully! 🌟', 4)
