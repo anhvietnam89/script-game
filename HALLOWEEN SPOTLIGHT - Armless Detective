@@ -1,0 +1,1355 @@
+-- wbuhub - Armless Detective Script
+local _WBU_Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local _WBU_Players = game:GetService('Players')
+local _WBU_StarterGui = game:GetService('StarterGui')
+local _WBU_HttpService = game:GetService('HttpService')
+local _WBU_Workspace = game:GetService('Workspace')
+local _WBU_PathfindingService = game:GetService('PathfindingService')
+local _WBU_UserInputService = game:GetService('UserInputService')
+local _WBU_RS = game:GetService('ReplicatedStorage')
+local _WBU_LocalPlayer = _WBU_Players.LocalPlayer
+
+-- Constants
+local _WBU_Constants = {
+    DISCORD_URL = 'https://discord.gg/bJKkdQQn7r',
+    VALID_KEY = 'caotuananh',
+    KEY_FILE = 'wbuhub/key.txt',
+    SETTINGS_FILE = 'wbuhub/wbuhub-sets.txt',
+    ERROR_LOG = 'wbuhub/errors.txt',
+    GROUP_ID = 946378404,
+    MOD_ROLE_IDS = {490360110, 8987623965, 4118621240},
+    OWNER_ID = {5500539802, 488904041, 533030021},
+    MAPS = {'Motel Room', 'Humble Abode', 'Bathroom', 'Moolah Manor', 'Cursed Cathedral'},
+}
+
+-- Utility Functions
+local function _WBU_Notify(title, text, duration)
+    pcall(function()
+        _WBU_StarterGui:SetCore('SendNotification', {
+            Title = title or 'wbuhub',
+            Text = text or '',
+            Duration = duration or 3,
+        })
+    end)
+end
+
+local function _WBU_LogError(err)
+    if writefile then
+        pcall(function()
+            local log = isfile(_WBU_Constants.ERROR_LOG) and readfile(_WBU_Constants.ERROR_LOG) or ''
+            writefile(_WBU_Constants.ERROR_LOG, log .. os.date('[%Y-%m-%d %H:%M:%S] ') .. tostring(err) .. '\n')
+        end)
+    end
+end
+
+-- Key System
+local _WBU_KeyValidated = true
+if not _WBU_KeyValidated then
+    local _WBU_KeyWindow = _WBU_Rayfield:CreateWindow({
+        Name = 'wbuhub Key System',
+        LoadingTitle = 'wbuhub - Key Verification',
+        LoadingSubtitle = 'Enter your key to proceed',
+        ConfigurationSaving = { Enabled = false },
+        Discord = { Enabled = true, Invite = '5ARTQYGvnX', RememberJoins = true },
+        KeySystem = false,
+    })
+    local _WBU_KeyTab = _WBU_KeyWindow:CreateTab('Key Input')
+    _WBU_KeyTab:CreateInput({
+        Name = 'Enter Key 🔑',
+        PlaceholderText = 'Type your key here...',
+        RemoveTextAfterFocusLost = false,
+        Callback = function(input)
+            if input == _WBU_Constants.VALID_KEY then
+                if writefile then
+                    pcall(function() writefile(_WBU_Constants.KEY_FILE, input) end)
+                end
+                _WBU_KeyValidated = true
+                _WBU_KeyWindow:Destroy()
+                _WBU_Notify('Success', 'Key verified! Loading script... 🌟', 3)
+            else
+                _WBU_Notify('Error', 'Invalid key! Join Discord for a valid key. 🚫', 5)
+            end
+        end,
+    })
+    _WBU_KeyTab:CreateButton({
+        Name = 'Join Discord for Key 📩',
+        Callback = function()
+            if setclipboard then
+                pcall(function()
+                    setclipboard(_WBU_Constants.DISCORD_URL)
+                    _WBU_Notify('Info', 'Discord invite copied! 📋', 3)
+                end)
+            else
+                _WBU_Notify('Info', 'Join: ' .. _WBU_Constants.DISCORD_URL, 5)
+            end
+        end,
+    })
+    if setclipboard then
+        pcall(function()
+            setclipboard(_WBU_Constants.DISCORD_URL)
+            _WBU_Notify('Info', 'Discord invite copied! Join for key. 📋', 5)
+        end)
+    end
+    while not _WBU_KeyValidated do
+        task.wait(0.5)
+    end
+end
+
+-- Main UI
+local _WBU_Window = _WBU_Rayfield:CreateWindow({
+    Name = 'wbuhub - Armless Detective',
+    LoadingTitle = 'wbuhub - Armless Detective',
+    LoadingSubtitle = 'by wbuhub',
+    ConfigurationSaving = { Enabled = true, FolderName = 'wbuhub', FileName = 'config' },
+    Discord = { Enabled = true, Invite = '5ARTQYGvnX', RememberJoins = true },
+    KeySystem = false,
+})
+
+-- Tabs
+local _WBU_AutofarmTab = _WBU_Window:CreateTab('Autofarm 🎮')
+local _WBU_EspTab = _WBU_Window:CreateTab('ESP 🔍')
+local _WBU_GameValuesTab = _WBU_Window:CreateTab('Game Values 📊')
+local _WBU_UtilitiesTab = _WBU_Window:CreateTab('Utilities 🛠')
+
+-- Settings
+local _WBU_SETTINGS = {
+    AutoFarmToggle = false,
+    AutofarmMode = 'Legit (Slow)',
+    SelectedMap = 'Cursed Cathedral',
+    CurrencyGoalMoney = 0,
+    CurrencyGoalCandy = 0,
+    AntiModAction = 'None',
+    SpeedHackValue = 16,
+    EspProfile = 'Default',
+    EspProfiles = {Default = {Color = Color3.fromRGB(255, 0, 0), Transparency = 0.5, Thickness = 2}},
+    SessionTimeout = 3600,
+    SettingsFile = _WBU_Constants.SETTINGS_FILE,
+}
+
+-- Load Settings
+if isfile and readfile and writefile then
+    if isfile(_WBU_SETTINGS.SettingsFile) then
+        local content = readfile(_WBU_SETTINGS.SettingsFile)
+        local patterns = {
+            AutoFarmToggle = 'AutoFarmToggle%((.-)%)',
+            AutofarmMode = 'AutofarmMode%("?(.-)"?%)',
+            SelectedMap = 'SelectedMap%("?(.-)"?%)',
+            CurrencyGoalMoney = 'CurrencyGoalMoney%((.-)%)',
+            CurrencyGoalCandy = 'CurrencyGoalCandy%((.-)%)',
+            AntiModAction = 'AntiModAction%("?(.-)"?%)',
+            SpeedHackValue = 'SpeedHackValue%((.-)%)',
+            EspProfile = 'EspProfile%("?(.-)"?%)',
+            SessionTimeout = 'SessionTimeout%((.-)%)',
+        }
+        for key, pattern in pairs(patterns) do
+            local match = content:match(pattern)
+            if match then
+                if key == 'AutoFarmToggle' then
+                    _WBU_SETTINGS[key] = match == 'true'
+                elseif key == 'CurrencyGoalMoney' or key == 'CurrencyGoalCandy' or key == 'SpeedHackValue' or key == 'SessionTimeout' then
+                    _WBU_SETTINGS[key] = tonumber(match) or _WBU_SETTINGS[key]
+                else
+                    _WBU_SETTINGS[key] = match
+                end
+            end
+        end
+    else
+        writefile(_WBU_SETTINGS.SettingsFile, '-- wbuhub settings\n-- ' .. _WBU_Constants.DISCORD_URL .. '\nAutoFarmToggle(false)\nAutofarmMode("Legit (Slow)")\nSelectedMap("Cursed Cathedral")\nCurrencyGoalMoney(0)\nCurrencyGoalCandy(0)\nAntiModAction("None")\nSpeedHackValue(16)\nEspProfile("Default")\nSessionTimeout(3600)')
+    end
+end
+
+local function _WBU_SaveSettings()
+    if writefile then
+        pcall(function()
+            writefile(_WBU_SETTINGS.SettingsFile, string.format('-- wbuhub settings\n-- %s\nAutoFarmToggle(%s)\nAutofarmMode("%s")\nSelectedMap("%s")\nCurrencyGoalMoney(%d)\nCurrencyGoalCandy(%d)\nAntiModAction("%s")\nSpeedHackValue(%d)\nEspProfile("%s")\nSessionTimeout(%d)', _WBU_Constants.DISCORD_URL, tostring(_WBU_SETTINGS.AutoFarmToggle), _WBU_SETTINGS.AutofarmMode, _WBU_SETTINGS.SelectedMap, _WBU_SETTINGS.CurrencyGoalMoney, _WBU_SETTINGS.CurrencyGoalCandy, _WBU_SETTINGS.AntiModAction, _WBU_SETTINGS.SpeedHackValue, _WBU_SETTINGS.EspProfile, _WBU_SETTINGS.SessionTimeout))
+        end)
+    end
+end
+
+-- Localization (English Only)
+local _WBU_Localization = {
+    MoneyLabel = 'Money: %s 💸',
+    CandyLabel = 'Candy: %s 🍬',
+    TimerLabel = 'Timer: %s ⏱',
+    GuiltyLabel = 'Guilty Suspect: %s 🕵️',
+    ModCountLabel = 'Mods: %d 🚨',
+    ModNamesLabel = 'Mod Names: %s',
+    AutoFarmToggle = 'AutoFarm',
+    AutoLobbyButton = 'Auto Lobby 🍏',
+    AutoGuessButton = 'Auto Guess 🎯',
+    AutofarmModeDropdown = 'Autofarm Mode ⚙️',
+    AntiModAction = 'Anti Mod Action 🔧',
+    ModLogLabel = 'Mod Activity Log 📜',
+    RefreshModButton = 'Refresh Mod List 🔄',
+}
+
+-- Safety Check
+local _WBU_ValuesFolder = _WBU_RS:WaitForChild('Values', 5)
+local _WBU_GuiltySuspect = _WBU_ValuesFolder and _WBU_ValuesFolder:WaitForChild('GuiltySuspect', 5)
+if not _WBU_ValuesFolder or not _WBU_GuiltySuspect then
+    _WBU_Notify('Error', 'Game not supported by wbuhub. Script aborted. 🚫', 5)
+    warn('[wbuhub] Game not supported.')
+    return
+end
+
+-- Owner SurfaceGui
+local function _WBU_CreateOwnerGui(player)
+    if player.UserId == _WBU_Constants.OWNER_ID then
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild('HumanoidRootPart', 5)
+        if hrp then
+            local billboard = Instance.new('BillboardGui')
+            billboard.Name = 'WBUOwnerGui'
+            billboard.Adornee = hrp
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = hrp
+            local textLabel = Instance.new('TextLabel')
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = '👑WBUHUB - OWNER👑'
+            textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            textLabel.Font = Enum.Font.SourceSansBold
+            textLabel.TextSize = 20
+            textLabel.Parent = billboard
+        end
+        player.CharacterAdded:Connect(function(char)
+            task.wait(1)
+            local newHrp = char:WaitForChild('HumanoidRootPart', 5)
+            if newHrp then
+                local billboard = Instance.new('BillboardGui')
+                billboard.Name = 'WBUOwnerGui'
+                billboard.Adornee = newHrp
+                billboard.Size = UDim2.new(0, 200, 0, 50)
+                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                billboard.AlwaysOnTop = true
+                billboard.Parent = newHrp
+                local textLabel = Instance.new('TextLabel')
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Text = '👑WBUHUB - OWNER👑'
+                textLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+                textLabel.TextStrokeTransparency = 0
+                textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                textLabel.Font = Enum.Font.SourceSansBold
+                textLabel.TextSize = 20
+                textLabel.Parent = billboard
+            end
+        end)
+    end
+end
+
+for _, player in ipairs(_WBU_Players:GetPlayers()) do
+    _WBU_CreateOwnerGui(player)
+end
+_WBU_Players.PlayerAdded:Connect(_WBU_CreateOwnerGui)
+
+-- Anti Mod (Utilities Tab)
+local _WBU_ModCount = 0
+local _WBU_ModList = {}
+local _WBU_ModLog = {}
+local _WBU_ModCountLabel = _WBU_UtilitiesTab:CreateLabel(_WBU_Localization.ModCountLabel:format(0))
+local _WBU_ModNamesLabel = _WBU_UtilitiesTab:CreateLabel(_WBU_Localization.ModNamesLabel:format('None'))
+local _WBU_ModLogLabel = _WBU_UtilitiesTab:CreateLabel(_WBU_Localization.ModLogLabel)
+
+local _WBU_AntiModDropdown = _WBU_UtilitiesTab:CreateDropdown({
+    Name = _WBU_Localization.AntiModAction,
+    Options = {'None', 'Leave', 'Destruct', 'ServerHop'},
+    CurrentOption = {_WBU_SETTINGS.AntiModAction},
+    MultipleOptions = false,
+    Flag = 'AntiModAction',
+    Callback = function(option)
+        _WBU_SETTINGS.AntiModAction = option[1]
+        _WBU_SaveSettings()
+        _WBU_Notify('Anti Mod', 'Action set to: ' .. option[1], 3)
+    end,
+})
+
+local _WBU_RefreshModButton = _WBU_UtilitiesTab:CreateButton({
+    Name = _WBU_Localization.RefreshModButton,
+    Callback = function()
+        _WBU_ModList = {}
+        _WBU_ModCount = 0
+        for _, player in ipairs(_WBU_Players:GetPlayers()) do
+            if player ~= _WBU_LocalPlayer then
+                _WBU_CheckPlayerRoles(player)
+            end
+        end
+        _WBU_Notify('Anti Mod', 'Mod list refreshed 🔄', 3)
+    end,
+})
+
+local function _WBU_UpdateModLabels()
+    _WBU_ModCountLabel:Set(_WBU_Localization.ModCountLabel:format(_WBU_ModCount))
+    _WBU_ModNamesLabel:Set(_WBU_Localization.ModNamesLabel:format(_WBU_ModCount == 0 and 'None' or table.concat(_WBU_ModList, ', ')))
+end
+
+local function _WBU_UpdateModLog()
+    _WBU_ModLogLabel:Set(_WBU_Localization.ModLogLabel .. '\n' .. (#_WBU_ModLog > 0 and table.concat(_WBU_ModLog, '\n') or 'No activity'))
+end
+
+local function _WBU_CheckPlayerRoles(player)
+    local success, roleIds = pcall(function()
+        return _WBU_Players:GetRolesInGroupAsync(player.UserId, _WBU_Constants.GROUP_ID)
+    end)
+    if success then
+        for _, roleId in ipairs(roleIds) do
+            if table.find(_WBU_Constants.MOD_ROLE_IDS, roleId) and not table.find(_WBU_ModList, player.Name) then
+                table.insert(_WBU_ModList, player.Name)
+                _WBU_ModCount = _WBU_ModCount + 1
+                table.insert(_WBU_ModLog, os.date('[%H:%M:%S] ') .. player.Name .. ' joined (Moderator)')
+                if #_WBU_ModLog > 10 then
+                    table.remove(_WBU_ModLog, 1)
+                end
+                _WBU_UpdateModLabels()
+                _WBU_UpdateModLog()
+                _WBU_Notify('MOD DETECTED', player.Name .. ' joined! 🚨', 10)
+                if _WBU_SETTINGS.AntiModAction == 'Leave' then
+                    _WBU_LocalPlayer:Kick('MOD DETECTED | ANTIMOD')
+                elseif _WBU_SETTINGS.AntiModAction == 'Destruct' then
+                    _WBU_Window:Destroy()
+                    for _, esp in pairs(_WBU_EvidenceEsps or {}) do _WBU_RemoveEsp(esp) end
+                    for _, esp in pairs(_WBU_PlayerEsps or {}) do _WBU_RemoveEsp(esp) end
+                    for _, esp in pairs(_WBU_MapObjectEsps or {}) do _WBU_RemoveEsp(esp) end
+                    _WBU_AutoExecEnabled = false
+                    _WBU_Notify('Anti Mod', 'UI destroyed and features disabled ⚡', 5)
+                elseif _WBU_SETTINGS.AntiModAction == 'ServerHop' then
+                    pcall(function()
+                        game:GetService('TeleportService'):Teleport(game.PlaceId, _WBU_LocalPlayer)
+                    end)
+                end
+                if _WBU_SETTINGS.AntiModAction ~= 'None' then
+                    _WBU_AutoExecEnabled = false
+                    _WBU_EvidenceEspEnabled = false
+                    _WBU_PlayerEspEnabled = false
+                    _WBU_MapObjectEspEnabled = false
+                    _WBU_Notify('Safety', 'Disabled risky features due to mod 🚨', 5)
+                end
+            end
+        end
+    end
+end
+
+_WBU_Players.PlayerAdded:Connect(_WBU_CheckPlayerRoles)
+_WBU_Players.PlayerRemoving:Connect(function(player)
+    local index = table.find(_WBU_ModList, player.Name)
+    if index then
+        table.remove(_WBU_ModList, index)
+        _WBU_ModCount = _WBU_ModCount - 1
+        table.insert(_WBU_ModLog, os.date('[%H:%M:%S] ') .. player.Name .. ' left')
+        if #_WBU_ModLog > 10 then
+            table.remove(_WBU_ModLog, 1)
+        end
+        _WBU_UpdateModLabels()
+        _WBU_UpdateModLog()
+    end
+end)
+
+spawn(function()
+    for _, player in ipairs(_WBU_Players:GetPlayers()) do
+        if player ~= _WBU_LocalPlayer then
+            _WBU_CheckPlayerRoles(player)
+        end
+    end
+    while true do
+        if _WBU_ModCount > 0 and _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('HumanoidRootPart') then
+            local hrp = _WBU_LocalPlayer.Character.HumanoidRootPart
+            for _, player in ipairs(_WBU_Players:GetPlayers()) do
+                if table.find(_WBU_ModList, player.Name) and player.Character and player.Character:FindFirstChild('HumanoidRootPart') then
+                    local dist = (hrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist <= 50 then
+                        _WBU_Notify('Proximity Alert', 'Mod ' .. player.Name .. ' is ' .. math.floor(dist) .. ' studs away! 🚨', 5)
+                    end
+                end
+            end
+        end
+        task.wait(5)
+    end
+end)
+
+-- Autofarm Tab
+local _WBU_AutoExecEnabled = _WBU_SETTINGS.AutoFarmToggle
+local _WBU_AutoFarmPaused = false
+local _WBU_MoneyLabel = _WBU_AutofarmTab:CreateLabel(_WBU_Localization.MoneyLabel:format(0))
+local _WBU_CandyLabel = _WBU_AutofarmTab:CreateLabel(_WBU_Localization.CandyLabel:format(0))
+local _WBU_TimerLabel = _WBU_AutofarmTab:CreateLabel(_WBU_Localization.TimerLabel:format('0:00:00'))
+local _WBU_GuiltyLabel = _WBU_AutofarmTab:CreateLabel(_WBU_Localization.GuiltyLabel:format('Unknown'))
+local _WBU_QueueStatusLabel = _WBU_AutofarmTab:CreateLabel('Queue Status: Idle 📡')
+
+local _WBU_AutoFarmToggle = _WBU_AutofarmTab:CreateToggle({
+    Name = _WBU_Localization.AutoFarmToggle,
+    CurrentValue = _WBU_SETTINGS.AutoFarmToggle,
+    Flag = 'AutoFarmToggle',
+    Callback = function(Value)
+        _WBU_SETTINGS.AutoFarmToggle = Value
+        _WBU_AutoExecEnabled = Value
+        _WBU_AutoFarmPaused = false
+        _WBU_SaveSettings()
+        _WBU_Notify('Autofarm', Value and 'Autofarm enabled 🎮' or 'Autofarm disabled', 3)
+    end,
+})
+
+local _WBU_AutoFarmPauseToggle = _WBU_AutofarmTab:CreateToggle({
+    Name = 'Pause Autofarm ⏸',
+    CurrentValue = false,
+    Flag = 'AutoFarmPauseToggle',
+    Callback = function(Value)
+        _WBU_AutoFarmPaused = Value
+        _WBU_Notify('Autofarm', Value and 'Autofarm paused ⏸' or 'Autofarm resumed ▶️', 3)
+    end,
+})
+
+local _WBU_AutofarmModeDropdown = _WBU_AutofarmTab:CreateDropdown({
+    Name = _WBU_Localization.AutofarmModeDropdown,
+    Options = {'Legit (Slow)', 'Blatant (Fast)'},
+    CurrentOption = {_WBU_SETTINGS.AutofarmMode},
+    MultipleOptions = false,
+    Flag = 'AutofarmMode',
+    Callback = function(option)
+        _WBU_SETTINGS.AutofarmMode = option[1]
+        _WBU_SaveSettings()
+        _WBU_Notify('Autofarm', 'Mode set to: ' .. option[1], 3)
+    end,
+})
+
+local _WBU_MapDropdown = _WBU_AutofarmTab:CreateDropdown({
+    Name = 'Select Map 🗺',
+    Options = _WBU_Constants.MAPS,
+    CurrentOption = {_WBU_SETTINGS.SelectedMap},
+    MultipleOptions = false,
+    Flag = 'SelectedMap',
+    Callback = function(option)
+        _WBU_SETTINGS.SelectedMap = option[1]
+        _WBU_SaveSettings()
+        _WBU_Notify('Autofarm', 'Selected map: ' .. option[1], 3)
+    end,
+})
+
+local _WBU_MoneyGoalInput = _WBU_AutofarmTab:CreateInput({
+    Name = 'Money Goal 💰',
+    PlaceholderText = 'Enter money goal...',
+    RemoveTextAfterFocusLost = false,
+    Callback = function(input)
+        local goal = tonumber(input) or 0
+        _WBU_SETTINGS.CurrencyGoalMoney = goal
+        _WBU_SaveSettings()
+        _WBU_Notify('Autofarm', 'Money goal set to: ' .. goal, 3)
+    end,
+})
+
+local _WBU_CandyGoalInput = _WBU_AutofarmTab:CreateInput({
+    Name = 'Candy Goal 🍬',
+    PlaceholderText = 'Enter candy goal...',
+    RemoveTextAfterFocusLost = false,
+    Callback = function(input)
+        local goal = tonumber(input) or 0
+        _WBU_SETTINGS.CurrencyGoalCandy = goal
+        _WBU_SaveSettings()
+        _WBU_Notify('Autofarm', 'Candy goal set to: ' .. goal, 3)
+    end,
+})
+
+local _WBU_ProgressBar = _WBU_AutofarmTab:CreateSlider({
+    Name = 'Autofarm Progress 📊',
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 0,
+    Flag = 'ProgressBar',
+    Callback = function() end, -- Read-only
+})
+
+-- Autofarm Logic
+local _WBU_RoundHandled = false
+local _WBU_Debounce = false
+
+local function _WBU_FindActiveMap()
+    local mapFolder = _WBU_Workspace:FindFirstChild('Map')
+    return mapFolder and mapFolder:GetChildren()[1] or nil
+end
+
+local function _WBU_IsInLobby()
+    return _WBU_Workspace:FindFirstChild('Lobby') ~= nil
+end
+
+function _WBU_RunLobbyRoutine()
+    if _WBU_Debounce or _WBU_AutoFarmPaused then return end
+    _WBU_Debounce = true
+    local success, err = pcall(function()
+        if not _WBU_IsInLobby() then return end
+        _WBU_Notify('Autofarm', 'In lobby, starting routine 🚪', 2)
+        local lobby = _WBU_Workspace:FindFirstChild('Lobby')
+        local lobbies = lobby and lobby:FindFirstChild('Lobbies')
+        if not lobbies then return end
+        local touches = {}
+        for _, obj in ipairs(lobbies:GetDescendants()) do
+            if obj.Name == 'TouchInterest' and obj.Parent:IsA('BasePart') then
+                table.insert(touches, obj.Parent)
+            end
+        end
+        if #touches == 0 then return end
+        local chosen = touches[math.random(1, #touches)]
+        local character = _WBU_LocalPlayer.Character or _WBU_LocalPlayer.CharacterAdded:Wait()
+        local hrp = character:WaitForChild('HumanoidRootPart', 5)
+        local humanoid = character:WaitForChild('Humanoid', 5)
+        if not (hrp and humanoid) then return end
+        if _WBU_SETTINGS.AutofarmMode == 'Legit (Slow)' then
+            local path = _WBU_PathfindingService:CreatePath({AgentRadius = 2, AgentHeight = 5, AgentCanJump = true})
+            local pathSuccess = pcall(function() path:ComputeAsync(hrp.Position, chosen.Position) end)
+            if pathSuccess and path.Status == Enum.PathStatus.Success then
+                local waypoints = path:GetWaypoints()
+                for i, waypoint in ipairs(waypoints) do
+                    humanoid:MoveTo(waypoint.Position)
+                    local reached = humanoid.MoveToFinished:Wait(5)
+                    _WBU_ProgressBar:Set(math.floor((i / #waypoints) * 100))
+                    if not reached then break end
+                end
+                if (hrp.Position - chosen.Position).Magnitude < 10 then
+                    firetouchinterest(hrp, chosen, 0)
+                    task.wait(0.1)
+                    firetouchinterest(hrp, chosen, 1)
+                    _WBU_Notify('Autofarm', 'Touched lobby point 🛠', 2)
+                else
+                    _WBU_Notify('Autofarm', 'Failed to reach lobby point 🚫', 2)
+                end
+            else
+                _WBU_Notify('Autofarm', 'Pathfinding failed 🚫', 2)
+            end
+        else
+            task.wait(math.random(0.1, 0.5))
+            hrp.CFrame = CFrame.new(chosen.Position)
+            firetouchinterest(hrp, chosen, 0)
+            task.wait(0.1)
+            firetouchinterest(hrp, chosen, 1)
+            _WBU_Notify('Autofarm', 'Teleported and touched point ⚡', 2)
+        end
+        task.wait(0.5)
+        pcall(function()
+            _WBU_RS:WaitForChild('Events'):WaitForChild('CreateParty'):FireServer(1, _WBU_SETTINGS.SelectedMap, 'Anyone')
+            _WBU_Notify('Autofarm', 'Started party for ' .. _WBU_SETTINGS.SelectedMap .. ' 🎉', 2)
+        end)
+        _WBU_ProgressBar:Set(100)
+    end)
+    if not success then
+        _WBU_LogError('Lobby routine failed: ' .. tostring(err))
+        _WBU_Notify('Autofarm', 'Lobby routine error 🚫', 3)
+    end
+    _WBU_ProgressBar:Set(0)
+    _WBU_Debounce = false
+end
+
+function _WBU_RunAutoFarmOnce()
+    if _WBU_Debounce or _WBU_AutoFarmPaused then return end
+    _WBU_Debounce = true
+    local success, err = pcall(function()
+        local currentMap = _WBU_FindActiveMap()
+        if not currentMap then return end
+        _WBU_Notify('Autofarm', 'In game, running sequence 🎮', 2)
+        local exitObj = currentMap:FindFirstChild('Exit')
+        local exitPrompt = exitObj and exitObj:FindFirstChildOfClass('ProximityPrompt')
+        local character = _WBU_LocalPlayer.Character or _WBU_LocalPlayer.CharacterAdded:Wait()
+        local hrp = character:WaitForChild('HumanoidRootPart', 5)
+        if not hrp then return end
+        if exitPrompt then
+            if _WBU_SETTINGS.AutofarmMode == 'Legit (Slow)' then
+                local path = _WBU_PathfindingService:CreatePath({AgentRadius = 2, AgentHeight = 5, AgentCanJump = true})
+                local pathSuccess = pcall(function() path:ComputeAsync(hrp.Position, exitObj.Position) end)
+                if pathSuccess and path.Status == Enum.PathStatus.Success then
+                    local waypoints = path:GetWaypoints()
+                    local humanoid = character:WaitForChild('Humanoid', 5)
+                    for i, waypoint in ipairs(waypoints) do
+                        humanoid:MoveTo(waypoint.Position)
+                        local reached = humanoid.MoveToFinished:Wait(5)
+                        _WBU_ProgressBar:Set(math.floor((i / #waypoints) * 100))
+                        if not reached then break end
+                    end
+                end
+            else
+                hrp.CFrame = CFrame.new(exitObj.Position)
+            end
+            exitPrompt.MaxActivationDistance = math.huge
+            fireproximityprompt(exitPrompt, 1, false)
+            _WBU_Notify('Autofarm', 'Triggered exit 🚪', 2)
+        end
+        task.wait(0.3)
+        local suspect = _WBU_GuiltySuspect.Value or 'Unknown'
+        pcall(function()
+            _WBU_RS:WaitForChild('Events'):WaitForChild('AccuseSuspect'):FireServer(suspect)
+            _WBU_Notify('Autofarm', 'Accused ' .. suspect .. ' 🕵️', 2)
+        end)
+        _WBU_RoundHandled = true
+        _WBU_ProgressBar:Set(100)
+    end)
+    if not success then
+        _WBU_LogError('Autofarm failed: ' .. tostring(err))
+        _WBU_Notify('Autofarm', 'Autofarm error 🚫', 3)
+    end
+    _WBU_ProgressBar:Set(0)
+    _WBU_Debounce = false
+end
+
+spawn(function()
+    while true do
+        if _WBU_AutoExecEnabled and not _WBU_AutoFarmPaused then
+            if _WBU_FindActiveMap() and not _WBU_RoundHandled then
+                _WBU_RunAutoFarmOnce()
+            elseif _WBU_IsInLobby() then
+                _WBU_RoundHandled = false
+                _WBU_RunLobbyRoutine()
+            end
+        end
+        task.wait(1)
+    end
+end)
+
+-- Currency and Timer Update
+spawn(function()
+    local startTime = tick()
+    while true do
+        local elapsed = tick() - startTime
+        _WBU_TimerLabel:Set(_WBU_Localization.TimerLabel:format(string.format('%d:%02d:%02d', math.floor(elapsed / 3600), math.floor((elapsed % 3600) / 60), math.floor(elapsed % 60))))
+        local success, coins, candy = pcall(function()
+            local gui = _WBU_LocalPlayer.PlayerGui:FindFirstChild('MainGui')
+            local holder = gui and gui:FindFirstChild('Holder')
+            local top = holder and holder:FindFirstChild('Top')
+            local inner = top and top:FindFirstChild('Holder')
+            local coinsObj = inner and inner:FindFirstChild('Coins')
+            local candyObj = inner and inner:FindFirstChild('Candy')
+            return coinsObj and tonumber(coinsObj.Amount.Text:gsub(',', '')) or 0, candyObj and tonumber(candyObj.Amount.Text:gsub(',', '')) or 0
+        end)
+        if success then
+            _WBU_MoneyLabel:Set(_WBU_Localization.MoneyLabel:format(coins))
+            _WBU_CandyLabel:Set(_WBU_Localization.CandyLabel:format(candy))
+            if _WBU_SETTINGS.CurrencyGoalMoney > 0 and coins >= _WBU_SETTINGS.CurrencyGoalMoney then
+                _WBU_AutoExecEnabled = false
+                _WBU_AutoFarmToggle:Set(false)
+                _WBU_Notify('Autofarm', 'Money goal reached! Autofarm stopped. 💰', 5)
+            end
+            if _WBU_SETTINGS.CurrencyGoalCandy > 0 and candy >= _WBU_SETTINGS.CurrencyGoalCandy then
+                _WBU_AutoExecEnabled = false
+                _WBU_AutoFarmToggle:Set(false)
+                _WBU_Notify('Autofarm', 'Candy goal reached! Autofarm stopped. 🍬', 5)
+            end
+        else
+            _WBU_LogError('Currency update failed')
+        end
+        local suspect = pcall(function() return _WBU_GuiltySuspect.Value end) and _WBU_GuiltySuspect.Value or 'Unknown'
+        _WBU_GuiltyLabel:Set(_WBU_Localization.GuiltyLabel:format(suspect))
+        _WBU_QueueStatusLabel:Set('Queue Status: ' .. (_WBU_IsInLobby() and 'In Lobby 🏠' or 'In Game 🎮'))
+        task.wait(0.5)
+    end
+end)
+
+-- ESP Tab
+local _WBU_EvidenceEspEnabled = false
+local _WBU_PlayerEspEnabled = false
+local _WBU_MapObjectEspEnabled = false
+local _WBU_EvidenceEsps = {}
+local _WBU_PlayerEsps = {}
+local _WBU_MapObjectEsps = {}
+local _WBU_EspColor = _WBU_SETTINGS.EspProfiles.Default.Color
+local _WBU_EspTransparency = _WBU_SETTINGS.EspProfiles.Default.Transparency
+local _WBU_EspThickness = _WBU_SETTINGS.EspProfiles.Default.Thickness
+local _WBU_ShowNames = true
+local _WBU_ShowDistance = true
+local _WBU_ShowHealth = true
+local _WBU_MaxDistance = 1000
+local _WBU_EvidenceFilter = 'All'
+
+local _WBU_EvidenceEspToggle = _WBU_EspTab:CreateToggle({
+    Name = 'Evidence ESP 🔍',
+    CurrentValue = false,
+    Flag = 'EvidenceEspToggle',
+    Callback = function(Value)
+        _WBU_EvidenceEspEnabled = Value
+        if not Value then
+            for _, esp in pairs(_WBU_EvidenceEsps) do _WBU_RemoveEsp(esp) end
+            _WBU_EvidenceEsps = {}
+        else
+            local activeEvidence = _WBU_Workspace:FindFirstChild('ActiveEvidence')
+            if activeEvidence then
+                for _, obj in ipairs(activeEvidence:GetChildren()) do
+                    if obj:IsA('BasePart') and (_WBU_EvidenceFilter == 'All' or obj.Name == _WBU_EvidenceFilter) then
+                        _WBU_EvidenceEsps[obj] = _WBU_CreateEsp(false)
+                    end
+                end
+            end
+        end
+        _WBU_Notify('ESP', Value and 'Evidence ESP enabled 🔍' or 'Evidence ESP disabled', 3)
+    end,
+})
+
+local _WBU_PlayerEspToggle = _WBU_EspTab:CreateToggle({
+    Name = 'Player ESP 👥',
+    CurrentValue = false,
+    Flag = 'PlayerEspToggle',
+    Callback = function(Value)
+        _WBU_PlayerEspEnabled = Value
+        if not Value then
+            for _, esp in pairs(_WBU_PlayerEsps) do _WBU_RemoveEsp(esp) end
+            _WBU_PlayerEsps = {}
+        else
+            for _, player in ipairs(_WBU_Players:GetPlayers()) do
+                if player ~= _WBU_LocalPlayer and player.Character and player.Character:FindFirstChild('HumanoidRootPart') then
+                    _WBU_PlayerEsps[player] = _WBU_CreateEsp(true)
+                end
+            end
+        end
+        _WBU_Notify('ESP', Value and 'Player ESP enabled 👥' or 'Player ESP disabled', 3)
+    end,
+})
+
+local _WBU_EspColorPicker = _WBU_EspTab:CreateColorPicker({
+    Name = 'ESP Color 🎨',
+    Color = _WBU_EspColor,
+    Flag = 'EspColorPicker',
+    Callback = function(Color)
+        _WBU_EspColor = Color
+        _WBU_SETTINGS.EspProfiles[_WBU_SETTINGS.EspProfile].Color = Color
+        _WBU_SaveSettings()
+    end,
+})
+
+local _WBU_EspTransparencySlider = _WBU_EspTab:CreateSlider({
+    Name = 'ESP Transparency 🌫',
+    Range = {0, 1},
+    Increment = 0.1,
+    CurrentValue = _WBU_EspTransparency,
+    Flag = 'EspTransparencySlider',
+    Callback = function(Value)
+        _WBU_EspTransparency = Value
+        _WBU_SETTINGS.EspProfiles[_WBU_SETTINGS.EspProfile].Transparency = Value
+        _WBU_SaveSettings()
+    end,
+})
+
+local _WBU_EspThicknessSlider = _WBU_EspTab:CreateSlider({
+    Name = 'ESP Thickness 📏',
+    Range = {1, 5},
+    Increment = 1,
+    CurrentValue = _WBU_EspThickness,
+    Flag = 'EspThicknessSlider',
+    Callback = function(Value)
+        _WBU_EspThickness = Value
+        _WBU_SETTINGS.EspProfiles[_WBU_SETTINGS.EspProfile].Thickness = Value
+        _WBU_SaveSettings()
+    end,
+})
+
+local _WBU_ShowNamesToggle = _WBU_EspTab:CreateToggle({
+    Name = 'Show Names 📛',
+    CurrentValue = true,
+    Flag = 'ShowNamesToggle',
+    Callback = function(Value) _WBU_ShowNames = Value end,
+})
+
+local _WBU_ShowDistanceToggle = _WBU_EspTab:CreateToggle({
+    Name = 'Show Distance 📍',
+    CurrentValue = true,
+    Flag = 'ShowDistanceToggle',
+    Callback = function(Value) _WBU_ShowDistance = Value end,
+})
+
+local _WBU_ShowHealthToggle = _WBU_EspTab:CreateToggle({
+    Name = 'Show Health ❤️',
+    CurrentValue = true,
+    Flag = 'ShowHealthToggle',
+    Callback = function(Value) _WBU_ShowHealth = Value end,
+})
+
+local _WBU_MaxDistanceSlider = _WBU_EspTab:CreateSlider({
+    Name = 'Max Distance 🌐',
+    Range = {100, 5000},
+    Increment = 100,
+    CurrentValue = 1000,
+    Flag = 'MaxDistanceSlider',
+    Callback = function(Value) _WBU_MaxDistance = Value end,
+})
+
+local _WBU_EvidenceFilterDropdown = _WBU_EspTab:CreateDropdown({
+    Name = 'Evidence Filter 🔎',
+    Options = {'All', 'Knife', 'Footprint', 'Document'},
+    CurrentOption = {'All'},
+    MultipleOptions = false,
+    Flag = 'EvidenceFilter',
+    Callback = function(option)
+        _WBU_EvidenceFilter = option[1]
+        if _WBU_EvidenceEspEnabled then
+            for _, esp in pairs(_WBU_EvidenceEsps) do _WBU_RemoveEsp(esp) end
+            _WBU_EvidenceEsps = {}
+            local activeEvidence = _WBU_Workspace:FindFirstChild('ActiveEvidence')
+            if activeEvidence then
+                for _, obj in ipairs(activeEvidence:GetChildren()) do
+                    if obj:IsA('BasePart') and (_WBU_EvidenceFilter == 'All' or obj.Name == _WBU_EvidenceFilter) then
+                        _WBU_EvidenceEsps[obj] = _WBU_CreateEsp(false)
+                    end
+                end
+            end
+        end
+        _WBU_Notify('ESP', 'Evidence filter: ' .. option[1], 3)
+    end,
+})
+
+local function _WBU_CreateEsp(isPlayer)
+    local esp = {
+        box = Drawing.new('Square'),
+        name = Drawing.new('Text'),
+        distance = Drawing.new('Text'),
+        health = Drawing.new('Text'),
+        tracer = Drawing.new('Line'),
+    }
+    esp.box.Filled = false
+    esp.box.Thickness = _WBU_EspThickness
+    esp.box.Transparency = 1 - _WBU_EspTransparency
+    esp.box.Color = isPlayer and Color3.fromRGB(0, 255, 0) or _WBU_EspColor
+    esp.name.Size = 16
+    esp.name.Center = true
+    esp.name.Outline = true
+    esp.name.Color = _WBU_EspColor
+    esp.distance.Size = 14
+    esp.distance.Center = true
+    esp.distance.Outline = true
+    esp.distance.Color = _WBU_EspColor
+    esp.health.Size = 14
+    esp.health.Center = true
+    esp.health.Outline = true
+    esp.health.Color = _WBU_EspColor
+    esp.tracer.Thickness = 1
+    esp.tracer.Transparency = 1 - _WBU_EspTransparency
+    esp.tracer.Color = _WBU_EspColor
+    return esp
+end
+
+local function _WBU_RemoveEsp(esp)
+    pcall(function()
+        esp.box:Remove()
+        esp.name:Remove()
+        esp.distance:Remove()
+        esp.health:Remove()
+        esp.tracer:Remove()
+    end)
+end
+
+local activeEvidence = _WBU_Workspace:FindFirstChild('ActiveEvidence')
+if activeEvidence then
+    activeEvidence.ChildAdded:Connect(function(child)
+        if _WBU_EvidenceEspEnabled and child:IsA('BasePart') and (_WBU_EvidenceFilter == 'All' or child.Name == _WBU_EvidenceFilter) then
+            _WBU_EvidenceEsps[child] = _WBU_CreateEsp(false)
+        end
+    end)
+    activeEvidence.ChildRemoved:Connect(function(child)
+        if _WBU_EvidenceEsps[child] then
+            _WBU_RemoveEsp(_WBU_EvidenceEsps[child])
+            _WBU_EvidenceEsps[child] = nil
+        end
+    end)
+end
+
+_WBU_Players.PlayerAdded:Connect(function(player)
+    if player ~= _WBU_LocalPlayer then
+        player.CharacterAdded:Connect(function(char)
+            if _WBU_PlayerEspEnabled and char:FindFirstChild('HumanoidRootPart') then
+                _WBU_PlayerEsps[player] = _WBU_CreateEsp(true)
+            end
+        end)
+    end
+end)
+
+_WBU_Players.PlayerRemoving:Connect(function(player)
+    if _WBU_PlayerEsps[player] then
+        _WBU_RemoveEsp(_WBU_PlayerEsps[player])
+        _WBU_PlayerEsps[player] = nil
+    end
+end)
+
+-- ESP Update Loop
+spawn(function()
+    while true do
+        local camera = _WBU_Workspace.CurrentCamera
+        local playerPos = _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('HumanoidRootPart')
+        local playerScreenPos = playerPos and camera and camera:WorldToViewportPoint(playerPos.Position)
+        if _WBU_EvidenceEspEnabled and camera then
+            for obj, esp in pairs(_WBU_EvidenceEsps) do
+                if obj and obj.Parent and (_WBU_EvidenceFilter == 'All' or obj.Name == _WBU_EvidenceFilter) then
+                    local success, pos, onScreen = pcall(function() return camera:WorldToViewportPoint(obj.Position) end)
+                    if success and onScreen then
+                        local dist = playerPos and (playerPos.Position - obj.Position).Magnitude or math.huge
+                        if dist <= _WBU_MaxDistance then
+                            local size = math.clamp(500 / pos.Z, 10, 50)
+                            esp.box.Visible = true
+                            esp.box.Size = Vector2.new(size, size)
+                            esp.box.Position = Vector2.new(pos.X - size / 2, pos.Y - size / 2)
+                            esp.box.Color = _WBU_EspColor
+                            esp.box.Transparency = 1 - _WBU_EspTransparency
+                            esp.box.Thickness = _WBU_EspThickness
+                            esp.name.Text = obj.Name
+                            esp.name.Position = Vector2.new(pos.X, pos.Y - size / 2 - 16)
+                            esp.name.Visible = _WBU_ShowNames
+                            esp.distance.Text = math.floor(dist) .. 'm'
+                            esp.distance.Position = Vector2.new(pos.X, pos.Y + size / 2)
+                            esp.distance.Visible = _WBU_ShowDistance
+                            esp.health.Visible = false
+                            esp.tracer.Visible = playerScreenPos and _WBU_ShowDistance
+                            if esp.tracer.Visible then
+                                esp.tracer.From = Vector2.new(playerScreenPos.X, playerScreenPos.Y)
+                                esp.tracer.To = Vector2.new(pos.X, pos.Y)
+                            end
+                        else
+                            esp.box.Visible = false
+                            esp.name.Visible = false
+                            esp.distance.Visible = false
+                            esp.health.Visible = false
+                            esp.tracer.Visible = false
+                        end
+                    else
+                        esp.box.Visible = false
+                        esp.name.Visible = false
+                        esp.distance.Visible = false
+                        esp.health.Visible = false
+                        esp.tracer.Visible = false
+                    end
+                else
+                    _WBU_RemoveEsp(esp)
+                    _WBU_EvidenceEsps[obj] = nil
+                end
+            end
+        end
+        if _WBU_PlayerEspEnabled and camera then
+            for player, esp in pairs(_WBU_PlayerEsps) do
+                local char = player.Character
+                local hrp = char and char:FindFirstChild('HumanoidRootPart')
+                local humanoid = char and char:FindFirstChild('Humanoid')
+                if hrp then
+                    local success, pos, onScreen = pcall(function() return camera:WorldToViewportPoint(hrp.Position) end)
+                    if success and onScreen then
+                        local dist = playerPos and (playerPos.Position - hrp.Position).Magnitude or math.huge
+                        if dist <= _WBU_MaxDistance then
+                            local size = math.clamp(1000 / pos.Z, 20, 100)
+                            esp.box.Visible = true
+                            esp.box.Size = Vector2.new(size * 0.5, size)
+                            esp.box.Position = Vector2.new(pos.X - size * 0.25, pos.Y - size / 2)
+                            esp.box.Color = table.find(_WBU_ModList, player.Name) and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+                            esp.box.Transparency = 1 - _WBU_EspTransparency
+                            esp.box.Thickness = _WBU_EspThickness
+                            esp.name.Text = player.Name
+                            esp.name.Position = Vector2.new(pos.X, pos.Y - size / 2 - 16)
+                            esp.name.Visible = _WBU_ShowNames
+                            esp.distance.Text = math.floor(dist) .. 'm'
+                            esp.distance.Position = Vector2.new(pos.X, pos.Y + size / 2)
+                            esp.distance.Visible = _WBU_ShowDistance
+                            esp.health.Text = humanoid and math.floor(humanoid.Health) .. '/' .. humanoid.MaxHealth or 'N/A'
+                            esp.health.Position = Vector2.new(pos.X, pos.Y + size / 2 + 14)
+                            esp.health.Visible = _WBU_ShowHealth and humanoid ~= nil
+                            esp.tracer.Visible = playerScreenPos and _WBU_ShowDistance
+                            if esp.tracer.Visible then
+                                esp.tracer.From = Vector2.new(playerScreenPos.X, playerScreenPos.Y)
+                                esp.tracer.To = Vector2.new(pos.X, pos.Y)
+                            end
+                        else
+                            esp.box.Visible = false
+                            esp.name.Visible = false
+                            esp.distance.Visible = false
+                            esp.health.Visible = false
+                            esp.tracer.Visible = false
+                        end
+                    else
+                        esp.box.Visible = false
+                        esp.name.Visible = false
+                        esp.distance.Visible = false
+                        esp.health.Visible = false
+                        esp.tracer.Visible = false
+                    end
+                else
+                    _WBU_RemoveEsp(esp)
+                    _WBU_PlayerEsps[player] = nil
+                end
+            end
+        end
+        task.wait(0.03)
+    end
+end)
+
+-- Game Values Tab
+local _WBU_GameValueLabels = {}
+local _WBU_ValueNotifications = {}
+local _WBU_GameValueNames = {
+    'GadgetPickingDone', 'GadgetPickingTimeLeft', 'GadgetRemainder', 'GroupLoaded',
+    'GroupSize', 'GuiltySuspect', 'HalloweenEnabled', 'HalloweenEventEnabled',
+    'Host', 'HostPickedMap', 'MapFolder', 'MapLoaded', 'SceneName',
+    'SelectedMapName', 'ServerType', 'VotesForExit'
+}
+
+for _, name in ipairs(_WBU_GameValueNames) do
+    local label = _WBU_GameValuesTab:CreateLabel(name .. ': Loading... 📊')
+    table.insert(_WBU_GameValueLabels, {name = name, label = label})
+    _WBU_ValueNotifications[name] = false
+    _WBU_GameValuesTab:CreateToggle({
+        Name = 'Notify ' .. name .. ' Changes 🔔',
+        CurrentValue = false,
+        Flag = 'Notify' .. name,
+        Callback = function(Value) _WBU_ValueNotifications[name] = Value end,
+    })
+end
+
+local _WBU_ExportValuesButton = _WBU_GameValuesTab:CreateButton({
+    Name = 'Export Game Values 📋',
+    Callback = function()
+        local values = {}
+        for _, name in ipairs(_WBU_GameValueNames) do
+            local value = _WBU_RS.Values:FindFirstChild(name)
+            values[name] = value and tostring(value.Value) or 'N/A'
+        end
+        if setclipboard then
+            pcall(function()
+                setclipboard(_WBU_HttpService:JSONEncode(values))
+                _WBU_Notify('Game Values', 'Values copied to clipboard 📋', 3)
+            end)
+        end
+    end,
+})
+
+spawn(function()
+    local valueHistory = {}
+    for _, name in ipairs(_WBU_GameValueNames) do valueHistory[name] = {} end
+    while true do
+        for i, entry in ipairs(_WBU_GameValueLabels) do
+            local value = _WBU_RS.Values:FindFirstChild(entry.name)
+            local valStr = value and tostring(value.Value) or 'N/A'
+            entry.label:Set(entry.name .. ': ' .. valStr .. ' 📊')
+            if _WBU_ValueNotifications[entry.name] and value and valueHistory[entry.name][#valueHistory[entry.name]] ~= valStr then
+                _WBU_Notify('Game Value', entry.name .. ' changed to: ' .. valStr, 3)
+            end
+            table.insert(valueHistory[entry.name], valStr)
+            if #valueHistory[entry.name] > 20 then table.remove(valueHistory[entry.name], 1) end
+        end
+        task.wait(1)
+    end
+end)
+
+-- Utilities Tab: Player Utils
+local _WBU_SpeedHackToggle = _WBU_UtilitiesTab:CreateToggle({
+    Name = 'Speed Hack ⚡',
+    CurrentValue = false,
+    Flag = 'SpeedHackToggle',
+    Callback = function(Value)
+        local humanoid = _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('Humanoid')
+        if humanoid then
+            humanoid.WalkSpeed = Value and _WBU_SETTINGS.SpeedHackValue or 16
+            _WBU_Notify('Player Utils', Value and 'Speed hack enabled ⚡' or 'Speed hack disabled', 3)
+        end
+    end,
+})
+
+local _WBU_SpeedHackSlider = _WBU_UtilitiesTab:CreateSlider({
+    Name = 'Speed Value 🏃',
+    Range = {16, 100},
+    Increment = 1,
+    CurrentValue = _WBU_SETTINGS.SpeedHackValue,
+    Flag = 'SpeedHackValue',
+    Callback = function(Value)
+        _WBU_SETTINGS.SpeedHackValue = Value
+        if _WBU_SpeedHackToggle:Get() and _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('Humanoid') then
+            _WBU_LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+        _WBU_SaveSettings()
+    end,
+})
+
+local _WBU_TeleportDropdown = _WBU_UtilitiesTab:CreateDropdown({
+    Name = 'Teleport to Player 🚀',
+    Options = {'None'},
+    CurrentOption = {'None'},
+    MultipleOptions = false,
+    Flag = 'TeleportPlayer',
+    Callback = function(option)
+        if option[1] ~= 'None' then
+            local target = _WBU_Players:FindFirstChild(option[1])
+            if target and target.Character and target.Character:FindFirstChild('HumanoidRootPart') and _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('HumanoidRootPart') then
+                _WBU_LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+                _WBU_Notify('Player Utils', 'Teleported to ' .. option[1], 3)
+            end
+        end
+    end,
+})
+
+local _WBU_GodModeToggle = _WBU_UtilitiesTab:CreateToggle({
+    Name = 'God Mode 🛡️',
+    CurrentValue = false,
+    Flag = 'GodModeToggle',
+    Callback = function(Value)
+        local humanoid = _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('Humanoid')
+        if humanoid then
+            humanoid.MaxHealth = Value and math.huge or 100
+            humanoid.Health = Value and math.huge or 100
+            _WBU_Notify('Player Utils', Value and 'God mode enabled 🛡️ (High ban risk)' or 'God mode disabled', 3)
+        end
+    end,
+})
+
+spawn(function()
+    while true do
+        local players = {'None'}
+        for _, player in ipairs(_WBU_Players:GetPlayers()) do
+            if player ~= _WBU_LocalPlayer then table.insert(players, player.Name) end
+        end
+        _WBU_TeleportDropdown:Set(players)
+        task.wait(5)
+    end
+end)
+
+-- Utilities Tab: Map Scanner
+local _WBU_MapObjectEspToggle = _WBU_UtilitiesTab:CreateToggle({
+    Name = 'Map Object ESP 🗺',
+    CurrentValue = false,
+    Flag = 'MapObjectEspToggle',
+    Callback = function(Value)
+        _WBU_MapObjectEspEnabled = Value
+        if not Value then
+            for _, esp in pairs(_WBU_MapObjectEsps) do _WBU_RemoveEsp(esp) end
+            _WBU_MapObjectEsps = {}
+        else
+            local mapFolder = _WBU_Workspace:FindFirstChild('Map')
+            if mapFolder then
+                for _, obj in ipairs(mapFolder:GetDescendants()) do
+                    if obj:IsA('BasePart') and obj.Name ~= 'Exit' then
+                        _WBU_MapObjectEsps[obj] = _WBU_CreateEsp(false)
+                    end
+                end
+            end
+        end
+        _WBU_Notify('Map Scanner', Value and 'Map Object ESP enabled 🗺' or 'Map Object ESP disabled', 3)
+    end,
+})
+
+local _WBU_SaveMapLayoutButton = _WBU_UtilitiesTab:CreateButton({
+    Name = 'Save Map Layout 💾',
+    Callback = function()
+        local mapFolder = _WBU_Workspace:FindFirstChild('Map')
+        if mapFolder then
+            local layout = {}
+            for _, obj in ipairs(mapFolder:GetDescendants()) do
+                if obj:IsA('BasePart') then
+                    layout[obj.Name] = tostring(obj.Position)
+                end
+            end
+            if writefile then
+                pcall(function()
+                    writefile('wbuhub/map_' .. (_WBU_RS.Values.SelectedMapName and _WBU_RS.Values.SelectedMapName.Value or 'unknown') .. '.txt', _WBU_HttpService:JSONEncode(layout))
+                    _WBU_Notify('Map Scanner', 'Map layout saved 💾', 3)
+                end)
+            end
+        end
+    end,
+})
+
+-- Map Scanner Update
+spawn(function()
+    while true do
+        if _WBU_MapObjectEspEnabled then
+            local mapFolder = _WBU_Workspace:FindFirstChild('Map')
+            if mapFolder then
+                for _, obj in ipairs(mapFolder:GetDescendants()) do
+                    if obj:IsA('BasePart') and obj.Name ~= 'Exit' and not _WBU_MapObjectEsps[obj] then
+                        _WBU_MapObjectEsps[obj] = _WBU_CreateEsp(false)
+                    end
+                end
+            end
+            local camera = _WBU_Workspace.CurrentCamera
+            local playerPos = _WBU_LocalPlayer.Character and _WBU_LocalPlayer.Character:FindFirstChild('HumanoidRootPart')
+            local playerScreenPos = playerPos and camera and camera:WorldToViewportPoint(playerPos.Position)
+            for obj, esp in pairs(_WBU_MapObjectEsps) do
+                if obj and obj.Parent then
+                    local success, pos, onScreen = pcall(function() return camera:WorldToViewportPoint(obj.Position) end)
+                    if success and onScreen then
+                        local dist = playerPos and (playerPos.Position - obj.Position).Magnitude or math.huge
+                        if dist <= _WBU_MaxDistance then
+                            local size = math.clamp(500 / pos.Z, 10, 50)
+                            esp.box.Visible = true
+                            esp.box.Size = Vector2.new(size, size)
+                            esp.box.Position = Vector2.new(pos.X - size / 2, pos.Y - size / 2)
+                            esp.box.Color = _WBU_EspColor
+                            esp.box.Transparency = 1 - _WBU_EspTransparency
+                            esp.box.Thickness = _WBU_EspThickness
+                            esp.name.Text = obj.Name
+                            esp.name.Position = Vector2.new(pos.X, pos.Y - size / 2 - 16)
+                            esp.name.Visible = _WBU_ShowNames
+                            esp.distance.Text = math.floor(dist) .. 'm'
+                            esp.distance.Position = Vector2.new(pos.X, pos.Y + size / 2)
+                            esp.distance.Visible = _WBU_ShowDistance
+                            esp.health.Visible = false
+                            esp.tracer.Visible = playerScreenPos and _WBU_ShowDistance
+                            if esp.tracer.Visible then
+                                esp.tracer.From = Vector2.new(playerScreenPos.X, playerScreenPos.Y)
+                                esp.tracer.To = Vector2.new(pos.X, pos.Y)
+                            end
+                        else
+                            esp.box.Visible = false
+                            esp.name.Visible = false
+                            esp.distance.Visible = false
+                            esp.health.Visible = false
+                            esp.tracer.Visible = false
+                        end
+                    else
+                        esp.box.Visible = false
+                        esp.name.Visible = false
+                        esp.distance.Visible = false
+                        esp.health.Visible = false
+                        esp.tracer.Visible = false
+                    end
+                else
+                    _WBU_RemoveEsp(esp)
+                    _WBU_MapObjectEsps[obj] = nil
+                end
+            end
+        end
+        task.wait(0.03)
+    end
+end)
+
+-- Utilities Tab: Settings
+local _WBU_SessionTimeoutSlider = _WBU_UtilitiesTab:CreateSlider({
+    Name = 'Session Timeout (seconds) ⏰',
+    Range = {0, 7200},
+    Increment = 60,
+    CurrentValue = _WBU_SETTINGS.SessionTimeout,
+    Flag = 'SessionTimeout',
+    Callback = function(Value)
+        _WBU_SETTINGS.SessionTimeout = Value
+        _WBU_SaveSettings()
+        _WBU_Notify('Settings', 'Session timeout set to: ' .. Value .. ' seconds', 3)
+    end,
+})
+
+local _WBU_BackupSettingsButton = _WBU_UtilitiesTab:CreateButton({
+    Name = 'Backup Settings 💾',
+    Callback = function()
+        if writefile and isfile(_WBU_SETTINGS.SettingsFile) then
+            pcall(function()
+                writefile('wbuhub/backup_' .. os.time() .. '.txt', readfile(_WBU_SETTINGS.SettingsFile))
+                _WBU_Notify('Settings', 'Settings backed up 💾', 3)
+            end)
+        end
+    end,
+})
+
+-- Performance Monitor
+local _WBU_PerformanceLabel = _WBU_UtilitiesTab:CreateLabel('Performance: Calculating... 📈')
+spawn(function()
+    local lastTime = tick()
+    local frameCount = 0
+    while true do
+        frameCount = frameCount + 1
+        local currentTime = tick()
+        if currentTime - lastTime >= 1 then
+            local fps = math.floor(frameCount / (currentTime - lastTime))
+            local memory = pcall(function() return game:GetService('Stats').TotalMemoryUsageMB end) and game:GetService('Stats').TotalMemoryUsageMB or 0
+            _WBU_PerformanceLabel:Set(string.format('Performance: %d FPS | %.2f MB 📈', fps, memory))
+            frameCount = 0
+            lastTime = currentTime
+        end
+        task.wait()
+    end
+end)
+
+-- Session Timeout
+spawn(function()
+    if _WBU_SETTINGS.SessionTimeout > 0 then
+        task.wait(_WBU_SETTINGS.SessionTimeout)
+        _WBU_AutoExecEnabled = false
+        _WBU_EvidenceEspEnabled = false
+        _WBU_PlayerEspEnabled = false
+        _WBU_MapObjectEspEnabled = false
+        _WBU_Window:Destroy()
+        _WBU_Notify('Settings', 'Session timeout reached. Script disabled ⏰', 5)
+    end
+end)
+
+-- Ban Risk Indicator
+local _WBU_BanRiskLabel = _WBU_UtilitiesTab:CreateLabel('Ban Risk: Low 🟢')
+spawn(function()
+    while true do
+        local risk = 'Low 🟢'
+        if _WBU_SETTINGS.AutofarmMode == 'Blatant (Fast)' then
+            risk = 'High 🔴'
+        elseif _WBU_SpeedHackToggle:Get() or _WBU_GodModeToggle:Get() then
+            risk = 'Medium 🟡'
+        elseif _WBU_AutoExecEnabled or _WBU_EvidenceEspEnabled or _WBU_PlayerEspEnabled or _WBU_MapObjectEspEnabled then
+            risk = 'Moderate 🟠'
+        end
+        _WBU_BanRiskLabel:Set('Ban Risk: ' .. risk)
+        task.wait(5)
+    end
+end)
+
+-- Character Reset Handling
+_WBU_LocalPlayer.CharacterAdded:Connect(function(char)
+    if _WBU_AutoExecEnabled then
+        _WBU_Notify('Autofarm', 'AutoFarm re-enabled on respawn 🔄', 3)
+    end
+    local humanoid = char:WaitForChild('Humanoid', 5)
+    if humanoid then
+        if _WBU_SpeedHackToggle:Get() then
+            humanoid.WalkSpeed = _WBU_SETTINGS.SpeedHackValue
+        end
+        if _WBU_GodModeToggle:Get() then
+            humanoid.MaxHealth = math.huge
+            humanoid.Health = math.huge
+        end
+    end
+end)
+
+-- Hotkey Support
+local _WBU_HotkeyBinds = {
+    F1 = function() _WBU_AutoFarmToggle:Set(not _WBU_AutoFarmToggle:Get()) end,
+    F2 = function() _WBU_EvidenceEspToggle:Set(not _WBU_EvidenceEspToggle:Get()) end,
+    F3 = function() _WBU_PlayerEspToggle:Set(not _WBU_PlayerEspToggle:Get()) end,
+}
+
+_WBU_UtilitiesTab:CreateInput({
+    Name = 'Set Hotkey 🔢',
+    PlaceholderText = 'e.g., F1 ToggleAutofarm',
+    RemoveTextAfterFocusLost = false,
+    Callback = function(input)
+        local key, action = input:match('^(%S+)%s+(.+)$')
+        if key and action then
+            local actionLower = action:lower()
+            if actionLower == 'toggleautofarm' then
+                _WBU_HotkeyBinds[key] = function() _WBU_AutoFarmToggle:Set(not _WBU_AutoFarmToggle:Get()) end
+            elseif actionLower == 'toggleevidenceesp' then
+                _WBU_HotkeyBinds[key] = function() _WBU_EvidenceEspToggle:Set(not _WBU_EvidenceEspToggle:Get()) end
+            elseif actionLower == 'toggleplayeresp' then
+                _WBU_HotkeyBinds[key] = function() _WBU_PlayerEspToggle:Set(not _WBU_PlayerEspToggle:Get()) end
+            else
+                _WBU_Notify('Hotkey', 'Invalid action: ' .. action, 3)
+                return
+            end
+            _WBU_Notify('Hotkey', 'Bound ' .. key .. ' to ' .. action, 3)
+        end
+    end,
+})
+
+_WBU_UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+        local key = input.KeyCode.Name
+        if _WBU_HotkeyBinds[key] then
+            _WBU_HotkeyBinds[key]()
+        end
+    end
+end)
+
+-- Dynamic UI Scaling
+local function _WBU_ScaleUI()
+    local viewportSize = _WBU_Workspace.CurrentCamera and _WBU_Workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+    local scale = math.min(viewportSize.X / 1920, viewportSize.Y / 1080) * 0.8
+    _WBU_Window:SetScale(scale) -- Hypothetical Rayfield method
+end
+
+if _WBU_Workspace.CurrentCamera then
+    _WBU_Workspace.CurrentCamera:GetPropertyChangedSignal('ViewportSize'):Connect(_WBU_ScaleUI)
+    _WBU_ScaleUI()
+end
+
+-- Initial Notification
+_WBU_Notify('wbuhub', 'Loaded wbuhub successfully! 🌟', 4)
