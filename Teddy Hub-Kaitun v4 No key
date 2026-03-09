@@ -1,0 +1,12 @@
+getgenv().TeddyHub = {
+    ["Allies"] = {
+        "Name1","Name2", 
+        "Name3"
+    },
+    ["Method"] = "Kill Players After Trial", -- Kill Players After Trial, Reset Player After Trial
+    ["MainAccount"] = "Name Main", -- for teleport to server of main account
+    ["Team"] = "Marines",
+    ["Gear"] = "A-B-B", -- "A-A-B" or ""  NOT GEAR 1 and 5
+    ["ResetAfterTrial"] = true
+}
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Teddyseetink/Haidepzai/refs/heads/main/TeddyHub-KaitunV4.lua"))() 
