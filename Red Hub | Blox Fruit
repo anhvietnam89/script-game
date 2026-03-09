@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/longhihilonghihi-hub/MainV1/refs/heads/main/RedVietNam.Lua"))()
