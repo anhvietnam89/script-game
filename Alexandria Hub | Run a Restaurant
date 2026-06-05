@@ -1,0 +1,2 @@
+sotr_key = "" -- LEAVE EMPTY NO KEY SYSTEM ITS FREE!
+loadstring(game:HttpGet("https://oracle.soteria.rip/fb9a1ee70f9cfa5ab3d834869db9bbbb"))()
